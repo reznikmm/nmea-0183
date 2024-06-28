@@ -128,6 +128,7 @@ package NMEA_0183 is
 
    generic
       Parse_GGA : Boolean := True;
+      Parse_GSA : Boolean := True;
    procedure Generic_Parse_Message
      (Message : String;
       Result  : out NMEA_Message;

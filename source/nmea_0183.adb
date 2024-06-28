@@ -16,6 +16,11 @@ package body NMEA_0183 is
       Result : in out NMEA_Message;
       Status : in out Parse_Status);
 
+   procedure Process_GSA
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status);
+
    function Count
      (Message : String;
       Char    : Character) return Natural;
@@ -66,10 +71,11 @@ package body NMEA_0183 is
       Ok     : in out Boolean);
 
    procedure Decode_Natural
-     (Fields : String;
-      First  : in out Natural;
-      Value  : in out Natural;
-      Ok     : in out Boolean);
+     (Fields  : String;
+      First   : in out Natural;
+      Default : Natural;
+      Value   : in out Natural;
+      Ok      : in out Boolean);
 
    procedure Decode_Duration
      (Fields : String;
@@ -310,18 +316,21 @@ package body NMEA_0183 is
    --------------------
 
    procedure Decode_Natural
-     (Fields : String;
-      First  : in out Natural;
-      Value  : in out Natural;
-      Ok     : in out Boolean)
+     (Fields  : String;
+      First   : in out Natural;
+      Default : Natural;
+      Value   : in out Natural;
+      Ok      : in out Boolean)
    is
       Empty  : Boolean;
       Length : Natural;
    begin
       Skip_Comma (Fields, First, Empty, Ok);
 
-      if not Ok or Empty then
-         Value := 0;
+      if not Ok then
+         null;
+      elsif Empty then
+         Value := Default;
       else
          Length := Till (Fields, First, ',') - First + 1;
          Parse_Natural (Fields, First, Length, Value, Ok);
@@ -375,6 +384,12 @@ package body NMEA_0183 is
          Result  : out NMEA_Message;
          Status  : in out Parse_Status);
 
+      procedure Decode_GSA
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status);
+
       ----------------
       -- Decode_GGA --
       ----------------
@@ -391,6 +406,23 @@ package body NMEA_0183 is
             Status := Invalid;
          end if;
       end Decode_GGA;
+
+      ----------------
+      -- Decode_GSA --
+      ----------------
+
+      procedure Decode_GSA
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status) is
+      begin
+         if Parse_GSA then
+            Process_GSA (Message (Message'First + 6 .. Last), Result, Status);
+         else
+            Status := Invalid;
+         end if;
+      end Decode_GSA;
 
       Last : Positive := Message'Last;
 
@@ -418,6 +450,8 @@ package body NMEA_0183 is
       begin
          if Id (Id'First) /= 'P' and then Code = "GGA" then
             Decode_GGA (Message, Last, Result, Status);
+         elsif Id (Id'First) /= 'P' and then Code = "GSA" then
+            Decode_GSA (Message, Last, Result, Status);
          else
             Status := Invalid;
          end if;
@@ -578,7 +612,7 @@ package body NMEA_0183 is
 
       First      : Natural := 7;
       Ok         : Boolean := True;
-      Satelites  : Natural := 0;
+      Int_Value  : Natural := 0;
       Fixed_Data : NMEA_0183.Fixed_Data :=
         (Time                    => No_Time,
          Latitude                => No_Latitude,
@@ -595,10 +629,10 @@ package body NMEA_0183 is
       Decode_Latitude (Fields, First, Fixed_Data.Latitude, Ok);
       Decode_Longitude (Fields, First, Fixed_Data.Longitude, Ok);
       Decode_Fix_Valid (Fields, First, Fixed_Data.Fix_Valid, Ok);
-      Decode_Natural (Fields, First, Satelites, Ok);
+      Decode_Natural (Fields, First, 0, Int_Value, Ok);
 
-      if Satelites in 0 .. 12 then
-         Fixed_Data.Satellites := Satelites;
+      if Int_Value in 0 .. 12 then
+         Fixed_Data.Satellites := Int_Value;
       else
          Ok := False;
       end if;
@@ -607,7 +641,13 @@ package body NMEA_0183 is
       Decode_Altitude (Fields, First, Fixed_Data.Altitude, Ok);
       Decode_Altitude (Fields, First, Fixed_Data.Geoid_Separation, Ok);
       Decode_Duration (Fields, First, Fixed_Data.Age_Of_Differential, Ok);
-      Decode_Natural (Fields, First, Fixed_Data.Differential_Station_Id, Ok);
+      Decode_Natural (Fields, First, 0, Int_Value, Ok);
+
+      if Int_Value in 0 .. 1023 then
+         Fixed_Data.Differential_Station_Id := Int_Value;
+      else
+         Ok := False;
+      end if;
 
       if Ok then
          Result := (GPS_Fixed_Data, Fixed_Data);
@@ -615,6 +655,69 @@ package body NMEA_0183 is
          Status := Invalid;
       end if;
    end Process_GGA;
+
+   -----------------
+   -- Process_GSA --
+   -----------------
+
+   procedure Process_GSA
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status)
+   is
+      First : Natural := Fields'First;
+      Ok    : Boolean := True;
+      Char  : Character := 'M';
+      List  : Satelite_Id_Array (1 .. 12);
+      Last  : Natural := 0;
+
+      Value : NMEA_0183.Active_Satellites :=
+        (Is_Manual      => False,
+         Fix_Mode       => NMEA_0183.No_Fix,
+         Satelites      => (Length => 0, List => <>),
+         Position_DOP   => 0.0,
+         Horizontal_DOP => 0.0,
+         Vertical_DOP   => 0.0);
+   begin
+      Decode_Char (Fields, First, "MA", Char, Ok);
+      Value.Is_Manual := Char = 'M';
+
+      Decode_Char (Fields, First, "123", Char, Ok);
+      Value.Fix_Mode :=
+        (case Char is
+            when '3' => Fix_3D,
+            when '2' => Fix_2D,
+            when others => No_Fix);
+
+      for J in List'Range loop
+         declare
+            Item : Natural := 0;
+         begin
+            Decode_Natural (Fields, First, Natural'Last, Item, Ok);
+
+            if Item = Natural'Last then
+               null;
+            elsif Item in 0 .. 99 then
+               Last := Last + 1;
+               List (Last) := Satelite_Id (Item);
+            else
+               Ok := False;
+            end if;
+         end;
+      end loop;
+
+      Value.Satelites := (Last, List (1 .. Last));
+
+      Decode_DOP (Fields, First, Value.Position_DOP, Ok);
+      Decode_DOP (Fields, First, Value.Horizontal_DOP, Ok);
+      Decode_DOP (Fields, First, Value.Vertical_DOP, Ok);
+
+      if Ok then
+         Result := (GPS_Active_Satellites, Value);
+      else
+         Status := Invalid;
+      end if;
+   end Process_GSA;
 
    ----------------
    -- Skip_Comma --
