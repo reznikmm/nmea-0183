@@ -21,6 +21,11 @@ package body NMEA_0183 is
       Result : in out NMEA_Message;
       Status : in out Parse_Status);
 
+   procedure Process_RMC
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status);
+
    function Count
      (Message : String;
       Char    : Character) return Natural;
@@ -64,10 +69,78 @@ package body NMEA_0183 is
 
    --  Decoding field of some type includes skipping comma
 
+   procedure Decode_Char
+     (Fields  : String;
+      First   : in out Natural;
+      Choices : String;
+      Value   : in out Character;
+      Ok      : in out Boolean);
+
+   generic
+      type Number is private;
+      Default : Number;
+      with function To_Number (X : String) return Number;
+      Suffix : String;
+   procedure Decode_Number
+     (Fields : String;
+      First  : in out Natural;
+      Value  : in out Number;
+      Ok     : in out Boolean);
+
+   -------------------
+   -- Decode_Number --
+   -------------------
+
+   procedure Decode_Number
+     (Fields : String;
+      First  : in out Natural;
+      Value  : in out Number;
+      Ok     : in out Boolean)
+   is
+      Last   : Natural;
+      Empty  : Boolean;
+      Ignore : Character;
+   begin
+      Skip_Comma (Fields, First, Empty, Ok);
+
+      if Empty then
+         Value := Default;
+      elsif Ok then
+         Last := Till (Fields, First, ',');
+
+         if (for some Char of Fields (First .. Last) =>
+               Char not in '0' .. '9' | '.')
+           or else Count (Fields (First .. Last), '.') /= 1
+           or else Last <= First
+         then
+            Ok := False;
+         else
+            Value := To_Number (Fields (First .. Last));
+            First := Last + 1;
+
+            if Suffix /= "" then
+               Decode_Char (Fields, First, "M", Ignore, Ok);
+            end if;
+         end if;
+      end if;
+   end Decode_Number;
+
+   procedure Decode_Degree is new Decode_Number
+     (Number    => Degree,
+      Default   => 0.0,
+      To_Number => Degree'Value,
+      Suffix    => "");
+
    procedure Decode_Time
      (Fields : String;
       First  : in out Natural;
       Value  : in out Time;
+      Ok     : in out Boolean);
+
+   procedure Decode_Date
+     (Fields : String;
+      First  : in out Natural;
+      Value  : in out Date;
       Ok     : in out Boolean);
 
    procedure Decode_Natural
@@ -83,17 +156,23 @@ package body NMEA_0183 is
       Value  : in out Duration;
       Ok     : in out Boolean);
 
-   procedure Decode_DOP
-     (Fields : String;
-      First  : in out Natural;
-      Value  : in out Dilution_Of_Precision;
-      Ok     : in out Boolean);
+   procedure Decode_DOP is new Decode_Number
+     (Number    => Dilution_Of_Precision,
+      Default   => 0.0,
+      To_Number => Dilution_Of_Precision'Value,
+      Suffix    => "");
 
    procedure Decode_Altitude
      (Fields : String;
       First  : in out Natural;
       Value  : in out Altitude;
       Ok     : in out Boolean);
+
+   procedure Decode_Speed is new Decode_Number
+     (Number    => Knots,
+      Default   => 0.0,
+      To_Number => Knots'Value,
+      Suffix    => "");
 
    procedure Decode_Latitude
      (Fields : String;
@@ -106,13 +185,6 @@ package body NMEA_0183 is
       First  : in out Natural;
       Value  : in out Longitude;
       Ok     : in out Boolean);
-
-   procedure Decode_Char
-     (Fields  : String;
-      First   : in out Natural;
-      Choices : String;
-      Value   : in out Character;
-      Ok      : in out Boolean);
 
    -----------
    -- Count --
@@ -150,6 +222,7 @@ package body NMEA_0183 is
       if Empty then
          Value := 0.0;
       elsif Ok then
+         --  TBD: Skip '-'
          Last := Till (Fields, First, ',');
 
          if (for some Char of Fields (First .. Last) =>
@@ -187,36 +260,34 @@ package body NMEA_0183 is
       end if;
    end Decode_Char;
 
-   ----------------
-   -- Decode_DOP --
-   ----------------
+   -----------------
+   -- Decode_Date --
+   -----------------
 
-   procedure Decode_DOP
+   procedure Decode_Date
      (Fields : String;
       First  : in out Natural;
-      Value  : in out Dilution_Of_Precision;
+      Value  : in out Date;
       Ok     : in out Boolean)
    is
-      Last : constant Natural := Till (Fields, First, ',');
       Empty : Boolean;
+      Year  : Natural := 0;
    begin
       Skip_Comma (Fields, First, Empty, Ok);
 
-      if Empty then
-         Value := 0.0;
-      elsif Ok then
-         if (for some Char of Fields (First .. Last) =>
-               Char not in '0' .. '9' | '.')
-           or else Count (Fields (First .. Last), '.') /= 1
-           or else Last <= First
-         then
-            Ok := False;
-         else
-            Value := Dilution_Of_Precision'Value (Fields (First .. Last));
-            First := Last + 1;
+      if not Ok or Empty then
+         Value := No_Date;
+      else
+         Parse_Natural (Fields, First, 2, Value.Day, Ok);
+         Parse_Natural (Fields, First, 2, Value.Month, Ok);
+         Parse_Natural (Fields, First, 2, Year, Ok);
+         Value.Year := 2000 + Year;
+
+         if not Ok then
+            Value := No_Date;
          end if;
       end if;
-   end Decode_DOP;
+   end Decode_Date;
 
    ---------------------
    -- Decode_Duration --
@@ -390,6 +461,12 @@ package body NMEA_0183 is
          Result  : out NMEA_Message;
          Status  : in out Parse_Status);
 
+      procedure Decode_RMC
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status);
+
       ----------------
       -- Decode_GGA --
       ----------------
@@ -424,6 +501,23 @@ package body NMEA_0183 is
          end if;
       end Decode_GSA;
 
+      ----------------
+      -- Decode_RMC --
+      ----------------
+
+      procedure Decode_RMC
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status) is
+      begin
+         if Parse_RMC then
+            Process_RMC (Message (Message'First + 6 .. Last), Result, Status);
+         else
+            Status := Invalid;
+         end if;
+      end Decode_RMC;
+
       Last : Positive := Message'Last;
 
    begin
@@ -452,6 +546,8 @@ package body NMEA_0183 is
             Decode_GGA (Message, Last, Result, Status);
          elsif Id (Id'First) /= 'P' and then Code = "GSA" then
             Decode_GSA (Message, Last, Result, Status);
+         elsif Id (Id'First) /= 'P' and then Code = "RMC" then
+            Decode_RMC (Message, Last, Result, Status);
          else
             Status := Invalid;
          end if;
@@ -718,6 +814,50 @@ package body NMEA_0183 is
          Status := Invalid;
       end if;
    end Process_GSA;
+
+   -----------------
+   -- Process_RMC --
+   -----------------
+
+   procedure Process_RMC
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status)
+   is
+      First : Natural := Fields'First;
+      Ok    : Boolean := True;
+      Char  : Character := 'V';
+      Value : NMEA_0183.Data_Variant_C :=
+        (Time                      => No_Time,
+         Is_Valid                  => False,
+         Latitude                  => No_Latitude,
+         Longitude                 => No_Longitude,
+         Speed                     => 0.0,
+         Course                    => 0.0,
+         Date                      => No_Date,
+         Magnetic_Declination      => 0.0,
+         Magnetic_Declination_Side => East);
+   begin
+      Decode_Time (Fields, First, Value.Time, Ok);
+      Decode_Char (Fields, First, "AV", Char, Ok);
+      Value.Is_Valid := Char = 'A';
+      Decode_Latitude (Fields, First, Value.Latitude, Ok);
+      Decode_Longitude (Fields, First, Value.Longitude, Ok);
+      Decode_Speed (Fields, First, Value.Speed, Ok);
+      Decode_Degree (Fields, First, Value.Course, Ok);
+      Decode_Date (Fields, First, Value.Date, Ok);
+      Decode_Degree (Fields, First, Value.Magnetic_Declination, Ok);
+      Decode_Char (Fields, First, "EW", Char, Ok);
+
+      Value.Magnetic_Declination_Side :=
+        (if Ok and Char = 'W' then West else East);
+
+      if Ok then
+         Result := (GPS_Data_Variant_C, Value);
+      else
+         Status := Invalid;
+      end if;
+   end Process_RMC;
 
    ----------------
    -- Skip_Comma --

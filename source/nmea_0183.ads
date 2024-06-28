@@ -51,7 +51,7 @@ package NMEA_0183 is
       Side   : Longitude_Side;
    end record;
 
-   type Dilution_Of_Precision is delta 0.1 digits 3 range 0.0 .. 10.0;
+   type Dilution_Of_Precision is delta 0.01 digits 5 range 0.0 .. 100.0;
 
    type Altitude is delta 0.1 digits 6 range -9_9999.9 .. 9_9999.9;
    --  Altitude in meters
@@ -129,6 +129,7 @@ package NMEA_0183 is
    generic
       Parse_GGA : Boolean := True;
       Parse_GSA : Boolean := True;
+      Parse_RMC : Boolean := True;
    procedure Generic_Parse_Message
      (Message : String;
       Result  : out NMEA_Message;
