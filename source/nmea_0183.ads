@@ -10,6 +10,7 @@ package NMEA_0183 is
    type NMEA_Message_Kind is
      (GPS_Fixed_Data,
       GPS_Active_Satellites,
+      GPS_Satellites_In_View,
       GPS_Data_Variant_C);
 
    function GGA return NMEA_Message_Kind renames GPS_Fixed_Data;
@@ -17,6 +18,9 @@ package NMEA_0183 is
 
    function GSA return NMEA_Message_Kind renames GPS_Active_Satellites;
    --  Shortcut for GPS DOP and Active Satellites
+
+   function GSV return NMEA_Message_Kind renames GPS_Satellites_In_View;
+   --  Shortcut for GNSS Satellites in View
 
    function RMC return NMEA_Message_Kind renames GPS_Data_Variant_C;
    --  Shortcut for Recommended Minimum Navigation Information variant C
@@ -113,12 +117,38 @@ package NMEA_0183 is
       --  Mode ?
    end record;
 
+   type Satellite_In_View is record
+      Satelite_Id : NMEA_0183.Satelite_Id;
+      Elevation   : Natural range 0 .. 90;
+      Azimuth     : Natural range 0 .. 359;
+      SNR         : Natural range 0 .. 99;  --  dBHz
+   end record;
+
+   type Satellite_In_View_Array is
+     array (Positive range <>) of Satellite_In_View;
+
+   subtype Satellite_In_View_Length is Natural range 0 .. 4;
+
+   type Satellite_In_View_List (Length : Satellite_In_View_Length := 0) is
+   record
+      List : Satellite_In_View_Array (1 .. Length);
+   end record;
+
+   type Satellites_In_View is record
+      Total_Messages : Positive;  --  Number of messages
+      Message_Index  : Positive;  --  Message number
+      Satellites     : Natural;  --  Number of satellites in view
+      List           : Satellite_In_View_List;
+   end record;
+
    type NMEA_Message (Kind : NMEA_Message_Kind := GPS_Fixed_Data) is record
       case Kind is
          when GPS_Fixed_Data =>
             Fixed_Data : NMEA_0183.Fixed_Data;
          when GPS_Active_Satellites =>
             Active_Satellites : NMEA_0183.Active_Satellites;
+         when GPS_Satellites_In_View =>
+            Satellites_In_View : NMEA_0183.Satellites_In_View;
          when GPS_Data_Variant_C =>
             Data_Variant_C : NMEA_0183.Data_Variant_C;
       end case;
@@ -129,6 +159,7 @@ package NMEA_0183 is
    generic
       Parse_GGA : Boolean := True;
       Parse_GSA : Boolean := True;
+      Parse_GSV : Boolean := True;
       Parse_RMC : Boolean := True;
    procedure Generic_Parse_Message
      (Message : String;

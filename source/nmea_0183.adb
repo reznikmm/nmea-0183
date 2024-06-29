@@ -21,6 +21,11 @@ package body NMEA_0183 is
       Result : in out NMEA_Message;
       Status : in out Parse_Status);
 
+   procedure Process_GSV
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status);
+
    procedure Process_RMC
      (Fields : String;
       Result : in out NMEA_Message;
@@ -461,6 +466,12 @@ package body NMEA_0183 is
          Result  : out NMEA_Message;
          Status  : in out Parse_Status);
 
+      procedure Decode_GSV
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status);
+
       procedure Decode_RMC
         (Message : String;
          Last    : Positive;
@@ -500,6 +511,23 @@ package body NMEA_0183 is
             Status := Invalid;
          end if;
       end Decode_GSA;
+
+      ----------------
+      -- Decode_GSV --
+      ----------------
+
+      procedure Decode_GSV
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status) is
+      begin
+         if Parse_GSV then
+            Process_GSV (Message (Message'First + 6 .. Last), Result, Status);
+         else
+            Status := Invalid;
+         end if;
+      end Decode_GSV;
 
       ----------------
       -- Decode_RMC --
@@ -546,6 +574,8 @@ package body NMEA_0183 is
             Decode_GGA (Message, Last, Result, Status);
          elsif Id (Id'First) /= 'P' and then Code = "GSA" then
             Decode_GSA (Message, Last, Result, Status);
+         elsif Id (Id'First) /= 'P' and then Code = "GSV" then
+            Decode_GSV (Message, Last, Result, Status);
          elsif Id (Id'First) /= 'P' and then Code = "RMC" then
             Decode_RMC (Message, Last, Result, Status);
          else
@@ -814,6 +844,56 @@ package body NMEA_0183 is
          Status := Invalid;
       end if;
    end Process_GSA;
+
+   -----------------
+   -- Process_GSV --
+   -----------------
+
+   procedure Process_GSV
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status)
+   is
+      First : Natural := Fields'First;
+      Ok    : Boolean := True;
+      List  : Satellite_In_View_Array (1 .. 4);
+      Last  : Satellite_In_View_Length := 0;
+      Value : NMEA_0183.Satellites_In_View :=
+        (Total_Messages => 1,
+         Message_Index  => 1,
+         Satellites     => 0,
+         List           => <>);
+   begin
+      Decode_Natural (Fields, First, 0, Value.Total_Messages, Ok);
+      Decode_Natural (Fields, First, 0, Value.Message_Index, Ok);
+      Decode_Natural (Fields, First, 0, Value.Satellites, Ok);
+
+      for J in List'Range loop
+         declare
+            Item : Satellite_In_View := (0, 0, 0, 0);
+            Id   : Natural := 0;
+         begin
+            Decode_Natural (Fields, First, 0, Id, Ok);
+            Decode_Natural (Fields, First, 0, Item.Elevation, Ok);
+            Decode_Natural (Fields, First, 0, Item.Azimuth, Ok);
+            Decode_Natural (Fields, First, 0, Item.SNR, Ok);
+
+            if Id in 1 .. 99 then
+               Item.Satelite_Id := Satelite_Id (Id);
+               Last := Last + 1;
+               List (Last) := Item;
+            end if;
+         end;
+      end loop;
+
+      Value.List := (Last, List (1 .. Last));
+
+      if Ok then
+         Result := (GPS_Satellites_In_View, Value);
+      else
+         Status := Invalid;
+      end if;
+   end Process_GSV;
 
    -----------------
    -- Process_RMC --
