@@ -1,0 +1,15 @@
+on: [push, pull_request]
+
+name: Build binaries
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v2
+      - name: Install Alire
+        uses: alire-project/setup-alire@v3
+      - name: Build
+        run: |
+          alr build
