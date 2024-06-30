@@ -10,6 +10,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Install Alire
         uses: alire-project/setup-alire@v3
-      - name: Build
+      - name: Build and test
         run: |
           alr build
+          alr -C tests run
