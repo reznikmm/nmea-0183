@@ -36,6 +36,11 @@ package body NMEA_0183 is
       Result : in out NMEA_Message;
       Status : in out Parse_Status);
 
+   procedure Process_VTG
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status);
+
    function Count
      (Message : String;
       Char    : Character) return Natural;
@@ -489,6 +494,12 @@ package body NMEA_0183 is
          Result  : out NMEA_Message;
          Status  : in out Parse_Status);
 
+      procedure Decode_VTG
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status);
+
       ----------------
       -- Decode_GGA --
       ----------------
@@ -574,6 +585,23 @@ package body NMEA_0183 is
          end if;
       end Decode_RMC;
 
+      ----------------
+      -- Decode_VTG --
+      ----------------
+
+      procedure Decode_VTG
+        (Message : String;
+         Last    : Positive;
+         Result  : out NMEA_Message;
+         Status  : in out Parse_Status) is
+      begin
+         if Parse_VTG then
+            Process_VTG (Message (Message'First + 6 .. Last), Result, Status);
+         else
+            Status := Invalid;
+         end if;
+      end Decode_VTG;
+
       Last : Positive := Message'Last;
 
    begin
@@ -608,6 +636,8 @@ package body NMEA_0183 is
             Decode_GSV (Message, Last, Result, Status);
          elsif Id (Id'First) /= 'P' and then Code = "RMC" then
             Decode_RMC (Message, Last, Result, Status);
+         elsif Id (Id'First) /= 'P' and then Code = "VTG" then
+            Decode_VTG (Message, Last, Result, Status);
          else
             Status := Invalid;
          end if;
@@ -1026,6 +1056,40 @@ package body NMEA_0183 is
          Status := Invalid;
       end if;
    end Process_RMC;
+
+   -----------------
+   -- Process_VTG --
+   -----------------
+
+   procedure Process_VTG
+     (Fields : String;
+      Result : in out NMEA_Message;
+      Status : in out Parse_Status)
+   is
+      First : Natural := Fields'First;
+      Ok    : Boolean := True;
+      Char  : Character := 'T';
+      Value : NMEA_0183.Ground_Speed :=
+        (True_Course     => 0.0,
+         Magnetic_Course => 0.0,
+         Speed_Knots     => 0.0,
+         Speed_KM_H      => 0.0);
+   begin
+      Decode_Degree (Fields, First, Value.True_Course, Ok);
+      Decode_Char (Fields, First, "T", Char, Ok);
+      Decode_Degree (Fields, First, Value.Magnetic_Course, Ok);
+      Decode_Char (Fields, First, "M", Char, Ok);
+      Decode_Speed (Fields, First, Value.Speed_Knots, Ok);
+      Decode_Char (Fields, First, "N", Char, Ok);
+      Decode_Speed (Fields, First, Value.Speed_KM_H, Ok);
+      Decode_Char (Fields, First, "K", Char, Ok);
+
+      if Ok then
+         Result := (GPS_Ground_Speed, Value);
+      else
+         Status := Invalid;
+      end if;
+   end Process_VTG;
 
    ----------------
    -- Skip_Comma --

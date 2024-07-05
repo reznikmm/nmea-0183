@@ -12,6 +12,7 @@ procedure Tests is
    procedure Test_GSA;
    procedure Test_GSV;
    procedure Test_RMC;
+   procedure Test_VTG;
 
    procedure Test_GGA is
       use type NMEA_0183.NMEA_Message;
@@ -133,10 +134,30 @@ procedure Tests is
       pragma Assert (Status = Success);
    end Test_RMC;
 
+   procedure Test_VTG is
+      use type NMEA_0183.NMEA_Message;
+
+      VTG : constant String := "$GPVTG,220.86,T,,M,2.550,N,4.724,K,A*34";
+
+      Result   : NMEA_0183.NMEA_Message;
+      Status   : NMEA_0183.Parse_Status;
+      Expected : constant NMEA_0183.NMEA_Message :=
+        (NMEA_0183.GPS_Ground_Speed,
+         (True_Course     => 220.86,
+          Magnetic_Course => 0.0,
+          Speed_Knots     => 2.550,
+          Speed_KM_H      => 4.724));
+   begin
+      Parse (VTG, Result, Status);
+      pragma Assert (Result = Expected);
+      pragma Assert (Status = Success);
+   end Test_VTG;
+
 begin
    Test_GGA;
    Test_GLL;
    Test_GSA;
    Test_GSV;
    Test_RMC;
+   Test_VTG;
 end Tests;

@@ -12,7 +12,8 @@ package NMEA_0183 is
       GPS_Geographic_Position,
       GPS_Active_Satellites,
       GPS_Satellites_In_View,
-      GPS_Data_Variant_C);
+      GPS_Data_Variant_C,
+      GPS_Ground_Speed);
 
    function GGA return NMEA_Message_Kind renames GPS_Fixed_Data;
    --  Shortcut for Global Positioning System Fixed Data
@@ -28,6 +29,9 @@ package NMEA_0183 is
 
    function RMC return NMEA_Message_Kind renames GPS_Data_Variant_C;
    --  Shortcut for Recommended Minimum Navigation Information variant C
+
+   function VTG return NMEA_Message_Kind renames GPS_Ground_Speed;
+   --  Shortcut for Course Over Ground and Ground Speed
 
    type Time is record
       Hour   : Natural range 0 .. 23;
@@ -154,6 +158,14 @@ package NMEA_0183 is
       List           : Satellite_In_View_List;
    end record;
 
+   type Ground_Speed is record
+      True_Course     : NMEA_0183.Degree;
+      Magnetic_Course : NMEA_0183.Degree;
+      Speed_Knots     : NMEA_0183.Speed;
+      Speed_KM_H      : NMEA_0183.Speed;
+      --  Mode ?
+   end record;
+
    type NMEA_Message (Kind : NMEA_Message_Kind := GPS_Fixed_Data) is record
       case Kind is
          when GPS_Fixed_Data =>
@@ -166,6 +178,8 @@ package NMEA_0183 is
             Satellites_In_View : NMEA_0183.Satellites_In_View;
          when GPS_Data_Variant_C =>
             Data_Variant_C : NMEA_0183.Data_Variant_C;
+         when GPS_Ground_Speed =>
+            Ground_Speed : NMEA_0183.Ground_Speed;
       end case;
    end record;
 
@@ -177,6 +191,7 @@ package NMEA_0183 is
       Parse_GSA : Boolean := True;
       Parse_GSV : Boolean := True;
       Parse_RMC : Boolean := True;
+      Parse_VTG : Boolean := True;
    procedure Generic_Parse_Message
      (Message : String;
       Result  : out NMEA_Message;
