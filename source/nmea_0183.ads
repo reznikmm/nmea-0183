@@ -115,14 +115,14 @@ package NMEA_0183 is
       Vertical_DOP : Dilution_Of_Precision;
    end record;
 
-   type Knots is delta 0.001 digits 6;
+   type Speed is delta 0.001 digits 6;
 
    type Data_Variant_C is record
       Time : NMEA_0183.Time; --  Message time (UTC)
       Is_Valid : Boolean;  --  Data is valid
       Latitude : NMEA_0183.Latitude;
       Longitude : NMEA_0183.Longitude;
-      Speed : NMEA_0183.Knots;
+      Speed : NMEA_0183.Speed;  --  In knots
       Course : NMEA_0183.Degree;
       Date : NMEA_0183.Date;
       Magnetic_Declination : NMEA_0183.Degree;

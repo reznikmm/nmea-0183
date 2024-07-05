@@ -179,9 +179,9 @@ package body NMEA_0183 is
       Ok     : in out Boolean);
 
    procedure Decode_Speed is new Decode_Number
-     (Number    => Knots,
+     (Number    => Speed,
       Default   => 0.0,
-      To_Number => Knots'Value,
+      To_Number => Speed'Value,
       Suffix    => "");
 
    procedure Decode_Latitude
