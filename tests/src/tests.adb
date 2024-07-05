@@ -8,32 +8,10 @@ procedure Tests is
    procedure Parse is new NMEA_0183.Generic_Parse_Message;
 
    procedure Test_GGA;
+   procedure Test_GLL;
    procedure Test_GSA;
    procedure Test_GSV;
    procedure Test_RMC;
-
-   procedure Test_GSA is
-      use type NMEA_0183.NMEA_Message;
-
-      GSA : constant String :=
-        "$GNGSA,A,3,80,71,73,79,69,,,,,,,,1.83,1.09,1.47*17";
-
-      Result   : NMEA_0183.NMEA_Message;
-      Status   : NMEA_0183.Parse_Status;
-      Expected : constant NMEA_0183.NMEA_Message :=
-        (NMEA_0183.GPS_Active_Satellites,
-         (Is_Manual      => False,
-          Fix_Mode       => NMEA_0183.Fix_3D,
-          Satelites      => (5, List => (80, 71, 73, 79, 69)),
-          Position_DOP   => 1.83,
-          Horizontal_DOP => 1.09,
-          Vertical_DOP   => 1.47));
-
-   begin
-      Parse (GSA, Result, Status);
-      pragma Assert (Result = Expected);
-      pragma Assert (Status = Success);
-   end Test_GSA;
 
    procedure Test_GGA is
       use type NMEA_0183.NMEA_Message;
@@ -61,6 +39,49 @@ procedure Tests is
       pragma Assert (Result = Expected);
       pragma Assert (Status = Success);
    end Test_GGA;
+
+   procedure Test_GLL is
+      use type NMEA_0183.NMEA_Message;
+
+      GLL : constant String :=
+        "$GNGLL,4404.14012,N,12118.85993,W,001037.00,A,A*67";
+
+      Result   : NMEA_0183.NMEA_Message;
+      Status   : NMEA_0183.Parse_Status;
+      Expected : constant NMEA_0183.NMEA_Message :=
+        (NMEA_0183.GPS_Geographic_Position,
+         (Latitude                => (44, 4.14012, NMEA_0183.North),
+          Longitude               => (121, 18.85993, NMEA_0183.West),
+          Time                    => (00, 10, 37.00),
+          Is_Valid                => True));
+   begin
+      Parse (GLL, Result, Status);
+      pragma Assert (Result = Expected);
+      pragma Assert (Status = Success);
+   end Test_GLL;
+
+   procedure Test_GSA is
+      use type NMEA_0183.NMEA_Message;
+
+      GSA : constant String :=
+        "$GNGSA,A,3,80,71,73,79,69,,,,,,,,1.83,1.09,1.47*17";
+
+      Result   : NMEA_0183.NMEA_Message;
+      Status   : NMEA_0183.Parse_Status;
+      Expected : constant NMEA_0183.NMEA_Message :=
+        (NMEA_0183.GPS_Active_Satellites,
+         (Is_Manual      => False,
+          Fix_Mode       => NMEA_0183.Fix_3D,
+          Satelites      => (5, List => (80, 71, 73, 79, 69)),
+          Position_DOP   => 1.83,
+          Horizontal_DOP => 1.09,
+          Vertical_DOP   => 1.47));
+
+   begin
+      Parse (GSA, Result, Status);
+      pragma Assert (Result = Expected);
+      pragma Assert (Status = Success);
+   end Test_GSA;
 
    procedure Test_GSV is
       use type NMEA_0183.NMEA_Message;
@@ -114,6 +135,7 @@ procedure Tests is
 
 begin
    Test_GGA;
+   Test_GLL;
    Test_GSA;
    Test_GSV;
    Test_RMC;

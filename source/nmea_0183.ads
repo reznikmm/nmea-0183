@@ -9,12 +9,16 @@ package NMEA_0183 is
 
    type NMEA_Message_Kind is
      (GPS_Fixed_Data,
+      GPS_Geographic_Position,
       GPS_Active_Satellites,
       GPS_Satellites_In_View,
       GPS_Data_Variant_C);
 
    function GGA return NMEA_Message_Kind renames GPS_Fixed_Data;
    --  Shortcut for Global Positioning System Fixed Data
+
+   function GLL return NMEA_Message_Kind renames GPS_Geographic_Position;
+   --  Shortcut for GPS Geographic Position - Latitude/Longitude
 
    function GSA return NMEA_Message_Kind renames GPS_Active_Satellites;
    --  Shortcut for GPS DOP and Active Satellites
@@ -83,6 +87,14 @@ package NMEA_0183 is
       --  Differential reference station ID
    end record;
 
+   type Geographic_Position is record
+      Latitude : NMEA_0183.Latitude;
+      Longitude : NMEA_0183.Longitude;
+      Time : NMEA_0183.Time; --  Message time (UTC)
+      Is_Valid  : Boolean;
+      --  Mode ?
+   end record;
+
    type Fix_Mode is (No_Fix, Fix_2D, Fix_3D);
 
    type Satelite_Id is range 0 .. 99;
@@ -146,6 +158,8 @@ package NMEA_0183 is
       case Kind is
          when GPS_Fixed_Data =>
             Fixed_Data : NMEA_0183.Fixed_Data;
+         when GPS_Geographic_Position =>
+            Geographic_Position : NMEA_0183.Geographic_Position;
          when GPS_Active_Satellites =>
             Active_Satellites : NMEA_0183.Active_Satellites;
          when GPS_Satellites_In_View =>
@@ -159,6 +173,7 @@ package NMEA_0183 is
 
    generic
       Parse_GGA : Boolean := True;
+      Parse_GLL : Boolean := True;
       Parse_GSA : Boolean := True;
       Parse_GSV : Boolean := True;
       Parse_RMC : Boolean := True;
