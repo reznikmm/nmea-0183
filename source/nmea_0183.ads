@@ -37,7 +37,8 @@ package NMEA_0183 is
       Day   : Ada.Calendar.Day_Number;
    end record;
 
-   type Minute is delta 0.0001 digits 6 range 0.0 .. 59.9999;
+   type Base_Minute is delta 0.000_000_1 digits 10 range -360.0 .. 360.0;
+   subtype Minute is Base_Minute range 0.0 .. 59.999_999_9;
    type Degree is delta 0.01 digits 5 range 0.0 .. 359.99;
 
    type Latitude_Side is (North, South);
@@ -57,7 +58,7 @@ package NMEA_0183 is
 
    type Dilution_Of_Precision is delta 0.01 digits 5 range 0.0 .. 100.0;
 
-   type Altitude is delta 0.1 digits 6 range -9_9999.9 .. 9_9999.9;
+   type Altitude is delta 0.001 digits 8 range -99_999.999 .. 99_999.999;
    --  Altitude in meters
 
    type Fixed_Data is record
@@ -102,7 +103,7 @@ package NMEA_0183 is
       Vertical_DOP : Dilution_Of_Precision;
    end record;
 
-   type Knots is delta 0.01 digits 5;
+   type Knots is delta 0.001 digits 6;
 
    type Data_Variant_C is record
       Time : NMEA_0183.Time; --  Message time (UTC)

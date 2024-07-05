@@ -647,7 +647,7 @@ package body NMEA_0183 is
       Ok     : in out Boolean)
    is
       Last : constant Natural := Till (Fields, First, ',');
-      Raw  : Minute'Base;
+      Raw  : Base_Minute'Base;
    begin
       if Ok then
          if (for some Char of Fields (First .. Last) =>
@@ -657,7 +657,7 @@ package body NMEA_0183 is
          then
             Ok := False;
          else
-            Raw := Minute'Value (Fields (First .. Last));
+            Raw := Base_Minute'Value (Fields (First .. Last));
             First := Last + 1;
 
             if Raw in Minute then
