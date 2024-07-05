@@ -89,7 +89,7 @@ procedure Tests is
       use type NMEA_0183.NMEA_Message;
 
       GSV : constant String :=
-        "$GPGSV,3,2,11,10,37,197,45,26,33,219,31,36,33,195,41,15,26,072,18*7E";
+        "$GPGSV,3,2,11,10,37,197,45,26,33,219,31,36,33,195,41*42";
 
       Result   : NMEA_0183.NMEA_Message;
       Status   : NMEA_0183.Parse_Status;
@@ -99,11 +99,10 @@ procedure Tests is
           Message_Index  => 2,
           Satellites     => 11,
           List           =>
-            (4,
+            (3,
              ((10, 37, 197, 45),
               (26, 33, 219, 31),
-              (36, 33, 195, 41),
-              (15, 26, 072, 18)))));
+              (36, 33, 195, 41)))));
    begin
       Parse (GSV, Result, Status);
       pragma Assert (Result = Expected);

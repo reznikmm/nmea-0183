@@ -968,6 +968,8 @@ package body NMEA_0183 is
             Item : Satellite_In_View := (0, 0, 0, 0);
             Id   : Natural := 0;
          begin
+            exit when First > Fields'Last;
+
             Decode_Natural (Fields, First, 0, Id, Ok);
             Decode_Natural (Fields, First, 0, Item.Elevation, Ok);
             Decode_Natural (Fields, First, 0, Item.Azimuth, Ok);
