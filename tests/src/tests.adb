@@ -16,10 +16,11 @@ procedure Tests is
 
    procedure Test_GGA is
       use type NMEA_0183.NMEA_Message;
+      use type NMEA_0183.Altitude;
 
       GGA : constant String :=
         "$GNGGA,001043.00,4404.14036,N,12118.85961,W" &
-        ",1,12,0.98,1113.0,M,21.3,M,,*6A";
+        ",1,12,0.98,1113.0,M,-21.3,M*47";
 
       Result   : NMEA_0183.NMEA_Message;
       Status   : NMEA_0183.Parse_Status;
@@ -32,7 +33,7 @@ procedure Tests is
           Satellites              => 12,
           Horizontal_DOP          => 0.98,
           Altitude                => 1113.0,
-          Geoid_Separation        => 21.3,
+          Geoid_Separation        => -21.3,
           Age_Of_Differential     => 0.0,
           Differential_Station_Id => 0));
    begin

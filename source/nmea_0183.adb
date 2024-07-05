@@ -82,7 +82,7 @@ package body NMEA_0183 is
       Value   : in out Character;
       Ok      : in out Boolean);
 
-   --  Decoding field of some type includes skipping comma
+   --  Decode_XXX: Decoding field of some type XXX skipping leading comma
 
    procedure Decode_Char
      (Fields  : String;
@@ -96,6 +96,7 @@ package body NMEA_0183 is
       Default : Number;
       with function To_Number (X : String) return Number;
       Suffix : String;
+      Allow_Negative : Boolean := False;
    procedure Decode_Number
      (Fields : String;
       First  : in out Natural;
@@ -112,9 +113,11 @@ package body NMEA_0183 is
       Value  : in out Number;
       Ok     : in out Boolean)
    is
+      From   : Natural;
       Last   : Natural;
       Empty  : Boolean;
       Ignore : Character;
+
    begin
       Skip_Comma (Fields, First, Empty, Ok);
 
@@ -123,10 +126,17 @@ package body NMEA_0183 is
       elsif Ok then
          Last := Till (Fields, First, ',');
 
-         if (for some Char of Fields (First .. Last) =>
+         From :=
+           (if Allow_Negative
+              and then First < Last
+              and then Fields (First) = '-'
+            then First + 1 else First);
+         --  Skip leading dash ('-')
+
+         if (for some Char of Fields (From .. Last) =>
                Char not in '0' .. '9' | '.')
-           or else Count (Fields (First .. Last), '.') /= 1
-           or else Last <= First
+           or else Count (Fields (From .. Last), '.') /= 1
+           or else Last <= From
          then
             Ok := False;
          else
@@ -177,11 +187,12 @@ package body NMEA_0183 is
       To_Number => Dilution_Of_Precision'Value,
       Suffix    => "");
 
-   procedure Decode_Altitude
-     (Fields : String;
-      First  : in out Natural;
-      Value  : in out Altitude;
-      Ok     : in out Boolean);
+   procedure Decode_Altitude is new Decode_Number
+     (Number         => Altitude,
+      Default        => 0.0,
+      To_Number      => Altitude'Value,
+      Suffix         => "M",
+      Allow_Negative => True);
 
    procedure Decode_Speed is new Decode_Number
      (Number    => Speed,
@@ -217,43 +228,6 @@ package body NMEA_0183 is
 
       return Result;
    end Count;
-
-   ---------------------
-   -- Decode_Altitude --
-   ---------------------
-
-   procedure Decode_Altitude
-     (Fields : String;
-      First  : in out Natural;
-      Value  : in out Altitude;
-      Ok     : in out Boolean)
-   is
-      Last   : Natural;
-      Ignore : Character := 'M';
-      Empty  : Boolean;
-   begin
-      Skip_Comma (Fields, First, Empty, Ok);
-
-      if Empty then
-         Value := 0.0;
-      elsif Ok then
-         --  TBD: Skip '-'
-         Last := Till (Fields, First, ',');
-
-         if (for some Char of Fields (First .. Last) =>
-               Char not in '0' .. '9' | '.')
-           or else Count (Fields (First .. Last), '.') /= 1
-           or else Last <= First
-         then
-            Ok := False;
-         else
-            Value := Altitude'Value (Fields (First .. Last));
-            First := Last + 1;
-
-            Decode_Char (Fields, First, "M", Ignore, Ok);
-         end if;
-      end if;
-   end Decode_Altitude;
 
    -----------------
    -- Decode_Char --
@@ -825,13 +799,16 @@ package body NMEA_0183 is
       Decode_DOP (Fields, First, Value.Horizontal_DOP, Ok);
       Decode_Altitude (Fields, First, Value.Altitude, Ok);
       Decode_Altitude (Fields, First, Value.Geoid_Separation, Ok);
-      Decode_Duration (Fields, First, Value.Age_Of_Differential, Ok);
-      Decode_Natural (Fields, First, 0, Int_Value, Ok);
 
-      if Int_Value in 0 .. 1023 then
-         Value.Differential_Station_Id := Int_Value;
-      else
-         Ok := False;
+      if First <= Fields'Last then
+         Decode_Duration (Fields, First, Value.Age_Of_Differential, Ok);
+         Decode_Natural (Fields, First, 0, Int_Value, Ok);
+
+         if Int_Value in 0 .. 1023 then
+            Value.Differential_Station_Id := Int_Value;
+         else
+            Ok := False;
+         end if;
       end if;
 
       if Ok then
