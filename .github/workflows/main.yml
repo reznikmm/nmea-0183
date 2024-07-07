@@ -14,3 +14,4 @@ jobs:
         run: |
           alr build
           alr -C tests run
+          alr -C demos/gtkada build
