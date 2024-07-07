@@ -3,9 +3,8 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
 
-with Ada.Calendar;
-
 package NMEA_0183 is
+   pragma Pure;
 
    type NMEA_Message_Kind is
      (GPS_Fixed_Data,
@@ -40,9 +39,9 @@ package NMEA_0183 is
    end record;
 
    type Date is record
-      Year  : Ada.Calendar.Year_Number;
-      Month : Ada.Calendar.Month_Number;
-      Day   : Ada.Calendar.Day_Number;
+      Year  : Integer range 1901 .. 2399;
+      Month : Integer range 1 .. 12;
+      Day   : Integer range 1 .. 31;
    end record;
 
    type Base_Minute is delta 0.000_000_1 digits 10 range -360.0 .. 360.0;
@@ -199,7 +198,7 @@ package NMEA_0183 is
 
    --  Values to return on empty fields
    No_Time : constant Time := (0, 0, 0.0);
-   No_Date : constant Date := (Ada.Calendar.Year_Number'First, 1, 1);
+   No_Date : constant Date := (1901, 1, 1);
    No_Latitude : constant Latitude := (0, 0.0, North);
    No_Longitude : constant Longitude := (0, 0.0, East);
 

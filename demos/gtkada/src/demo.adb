@@ -20,7 +20,7 @@ with Glib.Main;
 
 with Cairo_Bitmaps;
 
-with NMEA_0183;
+with NMEA_0183.Parse_Message;
 
 with GUI;
 with Serial_IO;
@@ -46,8 +46,6 @@ procedure Demo is
        Cr   : Cairo_Context) return Boolean;
 
    function On_Timeout return Boolean;
-
-   procedure Parse_Message is new NMEA_0183.Generic_Parse_Message;
 
    ---------------
    -- On_Redraw --
@@ -100,7 +98,7 @@ procedure Demo is
       Serial_IO.Read_Sentence (Text, Last);
 
       if Last > 0 then
-         Parse_Message (Text (1 .. Last), Value, Status);
+         NMEA_0183.Parse_Message (Text (1 .. Last), Value, Status);
 
          if Status in No_Checksum | Success then
             GUI.Show (Value);

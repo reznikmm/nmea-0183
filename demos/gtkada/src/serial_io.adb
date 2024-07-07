@@ -60,12 +60,6 @@ package body Serial_IO is
       GNAT.Serial_Communications.Read
         (Port, Data (To + 1 .. Data'Last), Next);
 
-      --  Strip leading LF
-      --  while To = 0 and then Next > 0 and then Data (1) = 16#0A# loop
-      --     Data (1 .. Next - 1) := Data (2 .. Next);
-      --     Next := Next - 1;
-      --  end loop;
-
       --  Look for CR/LF
       for J in 1 .. Next - 1 loop
          if Data (J .. J + 1) = [16#0D#, 16#0A#] then
