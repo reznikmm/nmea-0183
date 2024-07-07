@@ -92,13 +92,15 @@ package body GUI is
                then Text'First + 1 else Text'First)
               .. Text'Last);
 
-         X     : constant Natural :=
+         Char_Height : constant Positive := BMP_Fonts.Char_Height (Font) + 3;
+
+         X : constant Natural :=
            (if Left then 1
             else LCD.Width - BMP_Fonts.Char_Width (Font) * Image'Length);
 
-         Y     : constant Natural :=
-           (if Top then BMP_Fonts.Char_Height (Font) * (Line - 1)
-            else LCD.Height - BMP_Fonts.Char_Height (Font) * Line - 1);
+         Y : constant Natural :=
+           (if Top then Char_Height * (Line - 1)
+            else LCD.Height - Char_Height * Line - 1);
       begin
          Bitmapped_Drawing.Draw_String
            (Buffer     => LCD,

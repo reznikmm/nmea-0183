@@ -95,15 +95,16 @@ procedure Demo is
       Value  : NMEA_0183.NMEA_Message;
       Status : NMEA_0183.Parse_Status;
    begin
-      Serial_IO.Read_Sentence (Text, Last);
+      loop
+         Serial_IO.Read_Sentence (Text, Last);
 
-      if Last > 0 then
+         exit when Last = 0;
          NMEA_0183.Parse_Message (Text (1 .. Last), Value, Status);
 
          if Status in No_Checksum | Success then
             GUI.Show (Value);
          end if;
-      end if;
+      end loop;
 
       Area.Queue_Draw;
       return True;
