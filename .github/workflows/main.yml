@@ -14,8 +14,12 @@ jobs:
         uses: actions/checkout@v2
       - name: Install Alire
         uses: alire-project/setup-alire@v3
+        with:
+          toolchain: gnat_arm_elf gnat_native gprbuild^22
       - name: Build and test
         run: |
           alr build
           alr -C tests run
           alr -C demos/gtkada build
+          alr index --add git+https://github.com/reznikmm/stm32-alire-index --name stm32
+          alr -C demos/stm32f4 build
