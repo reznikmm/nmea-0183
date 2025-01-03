@@ -1,6 +1,6 @@
 name = "nmea_0183"
 description = "NMEA 0183 message decoder"
-version = "0.1.0-dev"
+version = "0.1.0"
 
 authors = ["Max Reznik"]
 maintainers = ["Max Reznik <reznikmm@gmail.com>"]
