@@ -1,4 +1,4 @@
-#  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+#  SPDX-FileCopyrightText: 2024-2025 Max Reznik <reznikmm@gmail.com>
 #
 #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
@@ -23,15 +23,16 @@ development.contracts = "Yes"
 "*".ada_version = "Ada2022"
 
 [[depends-on]]
-stm32_f4ve = "~0.1.0-dev"
+gnat_arm_elf = "*"
+blinky_stm32_f4ve = "*"
 nmea_0183 = "*"
 
 [[pins]]
 nmea_0183 = { path='../..' }
+blinky_stm32_f4ve = { url='https://github.com/AdaCore/Ada_Drivers_Library', subdir='examples/stm32_f4ve' }
 
-#[build-profiles]
-#"adl_middleware" = "development"
-#"nmea_0183" = "development"
+[build-profiles]
+"*" = "development"
 
 [[depends-on]]
-stm32_gui = "~0.2.0"
+#stm32_gui = "~0.2.0"

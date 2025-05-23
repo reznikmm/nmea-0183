@@ -1,4 +1,4 @@
---  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+--  SPDX-FileCopyrightText: 2024-2025 Max Reznik <reznikmm@gmail.com>
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
@@ -740,20 +740,20 @@ package body NMEA_0183 is
       Status : in out Parse_Status)
    is
 
-      procedure Decode_Fix_Valid
+      procedure Decode_Quality
         (Fields : String;
          First  : in out Natural;
-         Value  : in out Boolean;
+         Value  : in out Quality_Indicator;
          Ok     : in out Boolean);
 
       ----------------------
-      -- Decode_Fix_Valid --
+      -- Decode_Quality --
       ----------------------
 
-      procedure Decode_Fix_Valid
+      procedure Decode_Quality
         (Fields : String;
          First  : in out Natural;
-         Value  : in out Boolean;
+         Value  : in out Quality_Indicator;
          Ok     : in out Boolean)
       is
          Empty  : Boolean;
@@ -761,13 +761,19 @@ package body NMEA_0183 is
       begin
          Skip_Comma (Fields, First, Empty, Ok);
 
-         if not Ok or Empty then
-            Value := False;
+         if Ok and not Empty then
+            Parse_Char (Fields, First, "0123456789", Result, Ok);
+
+            if Ok then
+               Value := Quality_Indicator'Val
+                 (Character'Pos (Result) - Character'Pos ('0'));
+            else
+               Value := Fix_Not_Valid;
+            end if;
          else
-            Parse_Char (Fields, First, "0123456", Result, Ok);
-            Value := Ok and then Result in '1' | '2' | '6';
+            Value := Fix_Not_Valid;
          end if;
-      end Decode_Fix_Valid;
+      end Decode_Quality;
 
       First      : Natural := Fields'First;
       Ok         : Boolean := True;
@@ -776,7 +782,7 @@ package body NMEA_0183 is
         (Time                    => No_Time,
          Latitude                => No_Latitude,
          Longitude               => No_Longitude,
-         Fix_Valid               => False,
+         Quality                 => Fix_Not_Valid,
          Satellites              => 0,
          Horizontal_DOP          => 0.0,
          Altitude                => 0.0,
@@ -787,7 +793,7 @@ package body NMEA_0183 is
       Decode_Time (Fields, First, Value.Time, Ok);
       Decode_Latitude (Fields, First, Value.Latitude, Ok);
       Decode_Longitude (Fields, First, Value.Longitude, Ok);
-      Decode_Fix_Valid (Fields, First, Value.Fix_Valid, Ok);
+      Decode_Quality (Fields, First, Value.Quality, Ok);
       Decode_Natural (Fields, First, 0, Int_Value, Ok);
 
       if Int_Value in 0 .. 12 then

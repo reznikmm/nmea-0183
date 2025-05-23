@@ -1,4 +1,4 @@
---  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+--  SPDX-FileCopyrightText: 2024-2025 Max Reznik <reznikmm@gmail.com>
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
@@ -34,7 +34,7 @@ procedure Tests is
          (Time                    => (00, 10, 43.0),
           Latitude                => (44, 04.14036, NMEA_0183.North),
           Longitude               => (121, 18.85961, NMEA_0183.West),
-          Fix_Valid               => True,
+          Quality                 => NMEA_0183.GPS_Fix,
           Satellites              => 12,
           Horizontal_DOP          => 0.98,
           Altitude                => 1113.0,

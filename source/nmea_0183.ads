@@ -1,4 +1,4 @@
---  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+--  SPDX-FileCopyrightText: 2024-2025 Max Reznik <reznikmm@gmail.com>
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
@@ -68,11 +68,35 @@ package NMEA_0183 is
    type Altitude is delta 0.001 digits 8 range -99_999.999 .. 99_999.999;
    --  Altitude in meters
 
+   type Quality_Indicator is
+     (Fix_Not_Valid,
+      GPS_Fix,
+      Differential_Fix,
+      Not_Applicable,
+      RTK_Fixed,
+      RTK_Float,
+      Dead_Reckoning,
+      Manual_Mode,
+      Simulator_Mode,
+      WAAS_SBAS);
+   --  GPS Quality Indicator
+   --
+   --  * @enum Fix_Not_Valid    - Fix not available or invalid
+   --  * @enum GPS_Fix          - GPS, SPS Mode, fix valid
+   --  * @enum Differential_Fix - Differential GPS, SPS Mode, fix valid
+   --  * @enum Not_Applicable   - N/A
+   --  * @enum RTK_Fixed        - RTK fixed ambiguity solution
+   --  * @enum RTK_Float        - RTK floating ambiguity solution
+   --  * @enum Differential_Fix - Estimated (dead reckoning) mode
+   --  * @enum Manual_Mode      - Manual input mode (fixed position)
+   --  * @enum Simulator_Mode   - Simulator mode
+   --  * @enum WAAS_SBAS        - WAAS/SBAS
+
    type Fixed_Data is record
       Time : NMEA_0183.Time; --  Message time (UTC)
       Latitude : NMEA_0183.Latitude;
       Longitude : NMEA_0183.Longitude;
-      Fix_Valid : Boolean;
+      Quality : Quality_Indicator;
       Satellites : Natural range 0 .. 12;
       --  Number of satellites in view
       Horizontal_DOP : Dilution_Of_Precision;

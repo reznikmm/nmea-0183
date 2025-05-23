@@ -1,4 +1,4 @@
---  SPDX-FileCopyrightText: 2024 Max Reznik <reznikmm@gmail.com>
+--  SPDX-FileCopyrightText: 2024-2025 Max Reznik <reznikmm@gmail.com>
 --
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 ----------------------------------------------------------------
@@ -228,9 +228,12 @@ package body GUI is
          use type NMEA_0183.Altitude;
          use type NMEA_0183.Latitude;
          use type NMEA_0183.Longitude;
+         use type NMEA_0183.Quality_Indicator;
+
+         Valid : constant Boolean := Value.Quality /= NMEA_0183.Fix_Not_Valid;
       begin
-         if State.Has_Fix /= Value.Fix_Valid then
-            State.Has_Fix := Value.Fix_Valid;
+         if State.Has_Fix /= Valid then
+            State.Has_Fix := Valid;
             State.Timestamp := Timestamp + 1;
          end if;
 
